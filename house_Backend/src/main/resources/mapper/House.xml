@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="com.ssafy.house.house.model.mapper.HouseMapper">
+	<resultMap type="House" id="house">
+		<result column="userId" property="ownerId"/>
+	</resultMap>
+	
+	<select id="selectHouseAdmin" resultMap="house">
+		select h.aptCode, h.buildYear, h.roadName, h.roadNameBonbun, h.roadNameBubun,
+		h.roadNameSeq, h.roadNameBasementCode, h.roadNameCode, h.dong, h.bonbun,
+		h.bubun, h.sigunguCode, h.eubmyundongCode, h.dongCode, h.landCode,
+		h.apartmentName, h.jibun, h.lng, h.lat, p.userId, p.price
+			from houseinfo h
+			left outer join product p
+			on h.aptCode = p.aptCode
+			<where>
+				<include refid="search"></include>		
+			</where>
+			order by aptCode desc
+			limit #{start}, #{listsize}
+	</select>
+	
+	<select id="selectHouseUser" resultMap="house">
+		select h.aptCode, h.buildYear, h.roadName, h.roadNameBonbun, h.roadNameBubun,
+		h.roadNameSeq, h.roadNameBasementCode, h.roadNameCode, h.dong, h.bonbun,
+		h.bubun, h.sigunguCode, h.eubmyundongCode, h.dongCode, h.landCode,
+		h.apartmentName, h.jibun, h.lng, h.lat, p.userId, p.price, d.sidoName, d.gugunName
+		from houseinfo h
+		join product p
+		on h.aptCode = p.aptCode
+		left outer join dongcode d
+				on h.dongCode = d.dongCode
+		<where>
+			<include refid="search"></include>
+		</where>
+		order by h.aptCode desc
+		limit #{start}, #{listsize}
+	</select>
+	
+	
+	<select id="selectHouseAll" resultType="house">
+		select h.aptCode, h.buildYear, h.roadName, h.roadNameBonbun, h.roadNameBubun,
+		h.roadNameSeq, h.roadNameBasementCode, h.roadNameCode, h.dong, h.bonbun,
+		h.bubun, h.sigunguCode, h.eubmyundongCode, h.dongCode, h.landCode,
+		h.apartmentName, h.jibun, h.lng, h.lat, p.userId, p.price, d.sidoName, d.gugunName
+			from houseinfo h
+			left outer join product p
+				on h.aptCode = p.aptCode
+			left outer join dongcode d
+				on h.dongCode = d.dongCode
+			<where>
+				<include refid="search"></include>		
+			</where>
+			order by aptCode desc
+			limit #{start}, #{listsize}
+	</select>
+	
+	<select id="selectMyHouseAll" parameterType="string" resultType="house">
+		select house.aptCode, buildYear, roadName, roadNameBonbun, roadNameBubun,
+				roadNameSeq, roadNameBasementCode, roadNameCode, dong, bonbun,
+				bubun, sigunguCode, eubmyundongCode, house.dongCode, landCode,
+				apartmentName, jibun, lng, lat, d.sidoName, d.gugunName, product.price
+			from product as product
+			left outer join houseinfo as house
+				on product.aptCode = house.aptCode
+			left outer join dongcode d
+				on house.dongCode = d.dongCode
+			where userId = #{userId};
+	</select>
+
+
+	<select id="selectHouseDetail" resultType="house" parameterType="long">
+		select house.aptCode, buildYear, roadName, roadNameBonbun, roadNameBubun,
+				roadNameSeq, roadNameBasementCode, roadNameCode, dong, bonbun,
+				bubun, sigunguCode, eubmyundongCode, dongCode, landCode,
+				apartmentName, jibun, lng, lat, p.userId as ownerId, p.price
+			from houseinfo as house
+			left outer join product as p
+				on house.aptCode = p.aptCode
+			where house.aptCode = #{aptCode}
+	</select>
+
+	<insert id="registHouse" parameterType="house">
+		insert into houseinfo(apartmentName, dongCode, roadName)
+		values(#{apartmentName}, #{dongCode}, #{roadName});
+		<selectKey keyProperty="aptCode" keyColumn="aptCode" resultType="long" order="AFTER" >
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+
+ 	<update id="updateHouse" parameterType="map">
+		update product
+			set userId = #{userId}
+		    where aptCode = #{aptCode}
+				and userId = #{ownerId}
+	</update>
+
+	<delete id="deleteHouse" parameterType="long">
+		delete from houseinfo
+		where aptCode = #{aptCode};
+	</delete>
+
+	<sql id="search">
+		<if test="word != null and word != ''">
+			<if test="key == 'aptCode'">
+				and aptCode = #{word}
+			</if>
+			<if test="key == 'apartmentName'">
+				and ${key} like concat('%', #{word}, '%')
+			</if>
+
+			<if test="key == 'roadName'">
+				and ${key} like concat('%', #{word}, '%')
+			</if>
+		</if>
+	</sql>
+
+
+	<select id="getTotalHouseCount" parameterType="map"
+		resultType="int">
+		select count(aptCode)
+			from houseinfo
+		<where>
+			<include refid="search"></include>
+		</where>
+	</select>
+	
+	<select id="getUserHouseCount" parameterType="map"
+		resultType="int">
+		select count(*)
+		from houseinfo h
+		join product p
+		on h.aptCode = p.aptCode
+		<where>
+			<include refid="search"></include>
+		</where>
+	</select>
+
+	<select id = "getSidoList" resultType="String">
+		select distinct(sidoName)
+		from dongcode;
+	</select>
+	
+	<select id = "getGugunList" parameterType="String" resultType="String">
+		select distinct(gugunName)
+		from dongcode
+		where sidoName = #{sidoName} and gugunName is not null;
+	</select>
+	
+	<select id = "getDongList" parameterType="map" resultType="String">
+		select distinct(dongName)
+		from dongcode
+		where sidoName = #{sidoName} and gugunName = #{gugunName} and dongName is not null;
+	</select>
+	
+	<select id = "getDongCode" parameterType="map" resultType="String">
+		select dongCode
+		from dongcode
+		where sidoName = #{selectedSido} and gugunName = #{selectedGugun} and dongName = #{selectedDong};
+	</select>
+	
+	<insert id="registProduct" parameterType="map">
+		insert into product(userId, aptCode, price)
+		values(#{userId},#{aptCode},#{price});
+	</insert>
+	
+	<update id="calcMoney" parameterType="map">
+		UPDATE member
+		SET rechargeAmount = (
+		    SELECT subquery.rechargeAmount
+		    FROM (
+		        SELECT rechargeAmount
+		        FROM member
+		        WHERE user_id = #{userId}
+		    ) AS subquery
+		) - (
+		    SELECT price
+		    FROM product
+		    WHERE aptCode = #{aptCode}
+		)
+		WHERE user_id = #{userId};
+	</update>
+	
+	<update id="calcOwnerMoney">
+		UPDATE member
+		SET rechargeAmount = (
+		    SELECT subquery.rechargeAmount
+		    FROM (
+		        SELECT rechargeAmount
+		        FROM member
+		        WHERE user_id = #{ownerId}
+		    ) AS subquery
+		) + (
+		    SELECT price
+		    FROM product
+		    WHERE aptCode = #{aptCode}
+		)
+		WHERE user_id = #{ownerId};
+	</update>
+</mapper>
